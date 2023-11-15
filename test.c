@@ -6,8 +6,8 @@ int main(int argc, char *argv[])
 {
 	IOBUF_FILE *f1;
 	IOBUF_FILE *f2;
-	char c;
-
+	char* c;
+	c =malloc(10);
 	if (argc != 3)
 		exit(-1);
 
@@ -18,10 +18,9 @@ int main(int argc, char *argv[])
 	f2 = iobuf_open (argv[2], 'W');
 	if (f2 == NULL)
 		exit (-1);
-
-	while (iobuf_read (&c, 1, 1, f1) == 1) {
-          iobuf_write(&c,1,1,f2);
-		  printf(" %c \n",c);
+	while (iobuf_read (c, 1, 1, f1) == 1) {
+          iobuf_write(c,1,1,f2);
+		  printf(" %s \n",c);
 	}
 /*        vider (stdout);*/
 

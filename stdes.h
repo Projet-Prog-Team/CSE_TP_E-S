@@ -7,7 +7,7 @@ struct _ES_FICHIER
     int length;
     int fd;
     int mode;    
-    size_t read_size;
+    int read_size;
 };
 typedef struct _ES_FICHIER IOBUF_FILE;
 
