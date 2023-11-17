@@ -60,6 +60,8 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
 {
     char * tmp = p;
     int i=0;
+    int offset=0;
+    int j=0;
     if(f != NULL && f->fd != -1 && f->buf != NULL && f->read_size!=0)
     {
         //write if buf isn't empty
@@ -75,19 +77,14 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
             if(f->length+taille >=MAX_BUF || f->read_size<=0) 
             {
                 //write the diff
-                for(int j=f->length;j<MAX_BUF && f->length!=0;j++)
+                j=0;
+                for(j=f->length;j<MAX_BUF && f->length!=0;j++)
                 {
                     tmp[(j-(f->length))+taille*i]=f->buf[j];
                 }
+                offset=j-(f->length)+taille*i;
                 //if we've reach the limit of buf
                 f->read_size=read(f->fd,f->buf,MAX_BUF);
-                
-                if(f->length!=0)
-                {
-                    f->length=0;
-                    i++;
-                    break;
-                }
                 f->length=0;
             }
             if(f->read_size <= 0)
@@ -95,24 +92,24 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
             if(f->read_size<taille)
             {
                 //if we're near the EOF
-
                 //for each byte with a max size of taille
-                for(int j=f->length;j<f->length+f->read_size;j++)
-                    tmp[(j-(f->length))+taille*i]=f->buf[j];
+                printf("off: %i",offset);
+                for(int k=f->length;k<f->length+f->read_size-offset;k++)
+                    tmp[((k-(f->length))+taille*i)+offset]=f->buf[k];
                 f->length+=f->read_size;
                 break;
             }
             else
             {
                 //for each byte with a max size of taille
-                for(int j=f->length;j<f->length+taille;j++)
+                for(int k=f->length;k<f->length+taille-offset;k++)
                 {
-                    tmp[(j-(f->length))+taille*i]=f->buf[j];
+                    tmp[((k-(f->length))+taille*i)+offset]=f->buf[k];
                 }
-                f->length+=taille;
+                f->length+=(taille-offset);
             }
             
-            f->read_size-=taille;
+            f->read_size-=(taille-offset);
             
         }
         return i;
@@ -166,13 +163,26 @@ int iobuf_dump(IOBUF_FILE *f)
 /*int fecriref (IOBUF_FILE *f, const char *format, ...)
 {
     va_list args;
-    va_start(args);
+    
     int i=0;
     int l_i=0;
     int d_tmp;
     char c_tmp;
     char* s_tmp;
     int j=0;
+    int nb=0;
+    //count args
+    while(format[i]!='\0')
+    {
+        if(format[i]=='%'&& format[i+1]!='\0' )
+            if(format[i+1]=='d'||format[i+1]=='s'||format[i+1]=='c')
+                nb++;
+        i++;
+    }
+    i=0;
+    va_start(args);
+
+
     while(format[i]!='\0')
     {
         if(format[i]=='%' && format[i+1]!='\0' )

@@ -18,8 +18,8 @@ struct _ES_FICHIER
 };
 typedef struct _ES_FICHIER IOBUF_FILE;
 
-//extern IOBUF_FILE *fstdout;
-//extern IOBUF_FILE *fstderr;
+extern IOBUF_FILE *fstdout;
+extern IOBUF_FILE *fstderr;
 
 /* mode: 'R' = lecture, 'W' = écriture */
 IOBUF_FILE *iobuf_open(const char *nom, char mode);

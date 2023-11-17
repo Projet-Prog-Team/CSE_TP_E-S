@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 	char* c;
 	int taille=1;
 	c =malloc(taille);
-	if (argc != 3)
+	if (argc != 4)
 		exit(-1);
 	//fstdout=iobuf_open ("stdout", 'W');
 	//fstderr=iobuf_open ("stderr", 'W');
