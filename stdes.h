@@ -1,6 +1,13 @@
 #ifndef _STDES_H
 #define _STDES_H
 #include <stdlib.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 struct _ES_FICHIER
 {
     char * buf;
@@ -11,8 +18,8 @@ struct _ES_FICHIER
 };
 typedef struct _ES_FICHIER IOBUF_FILE;
 
-//extern IOBUF_FILE *stdout;
-//extern IOBUF_FILE *stderr;
+//extern IOBUF_FILE *fstdout;
+//extern IOBUF_FILE *fstderr;
 
 /* mode: 'R' = lecture, 'W' = écriture */
 IOBUF_FILE *iobuf_open(const char *nom, char mode);
