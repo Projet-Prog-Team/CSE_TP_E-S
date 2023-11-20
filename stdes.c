@@ -72,22 +72,51 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
         }
         f->mode=O_RDONLY;
         //CASE of taille > MAX_BUF
+
         for(i =0 ;i < nbelem ; i++)
         {
-            if(f->length+taille >=MAX_BUF || f->read_size<=0) 
+            if(f->read_size == -1){
+                printf("1 :\n");
+                fillbuff(f);
+            }
+            if(f->length+taille >=MAX_BUF)
             {
                 //write the diff
                 j=0;
-                for(j=f->length;j<MAX_BUF && f->length!=0;j++)
-                {
-                    tmp[(j-(f->length))+taille*i]=f->buf[j];
+                if(f->length !=0){
+                    for(j=f->length;j<MAX_BUF;j++)
+                    {
+                        //printf("Pos1 : %d\n",(j-(f->length))+taille*i);
+                        tmp[(j-(f->length))+taille*i]=f->buf[j];
+                    }
+                    offset=j-(f->length)+taille*i;
+                    //if we've reach the limit of buf
+                    printf("2 :\n");
+                    fillbuff(f);
+                }else{
+                    int done = taille;
+                    while(done >=MAX_BUF){
+                        for(j=f->length;j<MAX_BUF;j++)
+                        {
+                            //printf("Pos1 : %d\n",(j-(f->length))+taille*i);
+                            tmp[(j-(f->length))+taille*i]=f->buf[j];
+                            done--;
+                            if(done >=MAX_BUF){
+                                break;
+                            }
+                        }
+                        if(done <MAX_BUF){
+                                fillbuff(f);
+                        }
+                    }
+                    
+                    offset=taille - done;
+                    //if we've reach the limit of buf
+                    fillbuff(f);
                 }
-                offset=j-(f->length)+taille*i;
-                //if we've reach the limit of buf
-                fillbuff(f);
+
             }
-            if(f->read_size <= 0 || f->length>f->read_size)
-                    break;
+            
             if(f->read_size<nbelem*taille)
             {
                 //if we're near the EOF
@@ -114,6 +143,7 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
                 if(i==nbelem-1 && ((j-(f->length))+taille*i)+offset != taille*nbelem)
                 {
                     offset=(j-(f->length))+taille*i;
+                    printf("3 :\n");
                     fillbuff(f);
                     if(f->read_size>=taille)
                     {
@@ -152,6 +182,7 @@ void fillbuff(IOBUF_FILE *f)
 {
     f->length=0;
     f->read_size=read(f->fd,f->buf,MAX_BUF);
+    printf("f-read %d\n",f->read_size);
 }
 
 void fillnull(int begin, int end, char* p)
