@@ -28,6 +28,9 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
 int iobuf_write(const void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f);
 int iobuf_dump(IOBUF_FILE *f);
 
+void fillnull(int begin, int end, char* p);
+void fillbuff(IOBUF_FILE *f);
+
 int fecriref (IOBUF_FILE *f, const char *format, ...);
 /* directly in stdout */
 int ecriref (const char *format, ...);
