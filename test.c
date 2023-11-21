@@ -20,12 +20,12 @@ int main(int argc, char *argv[])
 	taille = atoi(argv[3]);
 	if (f2 == NULL)
 		exit (-1);
-	/*while (iobuf_read (c, taille, 1, f1) == 1) {
+	while (iobuf_read (c, taille, 1, f1) == 1) {
           iobuf_write(c,taille,1,f2);
-		  //printf("%s",c);
-	}*/
+		  iobuf_printf("%s",c);
+	}
 /*        vider (stdout);*/
-		fecriref(f2,"heyoooosuper!!%c",'P');
+		iobuf_printf("heyoooosuper!!%c",'P');
         iobuf_close (f1);
         iobuf_close (f2);
 

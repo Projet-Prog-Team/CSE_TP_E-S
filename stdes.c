@@ -54,6 +54,59 @@ int iobuf_close(IOBUF_FILE*f)
     }
 }
 
+
+int iobuf_flush(IOBUF_FILE *f)
+{
+    if(f != NULL && f->fd != -1 && f->buf != NULL)
+    {
+        if(f->mode == O_WRONLY && f->length!=0)
+        {
+            write(f->fd,f->buf,f->length);
+        }
+        f->length=0;
+        f->read_size=-1;
+        return 1;
+    }
+    return 0;
+}
+
+char* toString(int nb)
+{
+    int neg = 0;
+    int tmp=0;
+    int old_tmp=0;
+    int i=10;
+    int j=0;
+    int k=0;
+    char inv_char;
+    char* result = malloc(31);
+    if(nb<0)
+    {
+        nb=nb*-1;
+        neg=1;
+    }
+    while(nb!=0)
+    {
+        old_tmp= nb/i;
+        tmp=nb-old_tmp*i;
+        result[j]=tmp+'0';
+        nb=old_tmp;
+        j++;
+    }
+
+    for(k=0;k<j/2+neg;k++)
+    {
+        inv_char= result[k+neg];
+
+        result[k+neg]=result[j-(k+1)];
+        result[j-(k+1)]=inv_char;
+    }
+    if(neg==1)
+        result[0]='-';
+    //result[j+1]='\0';
+    return result;
+}
+
 int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
 {
     char * tmp = p;
@@ -70,22 +123,15 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
         }
         f->mode=O_RDONLY;
         //CASE of taille > MAX_BUF
-        //________________________
-        //________________________
-        //________________________
         for(i =0 ;i < nbelem ; i++)
         {
-            if(f->read_size == -1){
-                printf("1 :\n");
-                fillbuff(f);
-            }
-            if(f->length+taille >=MAX_BUF)
+            if(f->length+taille >=MAX_BUF || f->read_size<=0) 
             {
                 //write the diff
                 j=0;
-                for(j=f->length;j<f->read_size && f->length!=0;j++)
+                for(j=f->length;j<MAX_BUF && f->length!=0;j++)
                 {
-                    
+                    //iobuf_printf(" o:%c\n",f->buf[j]);
                     tmp[(j-(f->length))+taille*i]=f->buf[j];
                 }
                 offset=j-(f->length)+taille*i;
@@ -101,7 +147,7 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
                 j=0;
                 for(j=f->length;j<f->length+f->read_size-offset;j++)
                 {
-                    
+                    //iobuf_printf(" a:%c\n",f->buf[j]);
                     tmp[((j-(f->length))+taille*i)+offset]=f->buf[j];
                 }
                 //if there is not enough data to insert into p, we add 0 after index j 
@@ -111,25 +157,27 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
             }
             else
             {         
-            {         
                 //for each byte with a max size of taille
                 j=0;
+                
                 for(j=f->length;j<f->length+taille-offset && j<f->read_size;j++)
                 {
-                    
+                    //iobuf_printf(" b:%c\n",f->buf[j]);
                     tmp[((j-(f->length))+taille*i)+offset]=f->buf[j];
                 }
                 //if tmp isn't full
-                if(i==nbelem-1 && ((j-(f->length))+taille*i)+offset != taille*nbelem)
+                if(i==nbelem-1 && ((j-(f->length))+taille*i)+offset < taille*nbelem && f->read_size== MAX_BUF)
                 {
+                    //iobuf_printf("OUI ");
+                    //iobuf_printf("OUI %d ",((j-(f->length))+taille*i)+offset);
                     offset=(j-(f->length))+taille*i;
                     fillbuff(f);
                     if(f->read_size>=taille)
                     {
                         for(j=offset;j<taille-offset;j++)
                         {
+                            //iobuf_printf(" c:%c\n",tmp[j]);
                             tmp[j]=f->buf[j-offset];
-                            iobuf_printf("%c", tmp[j]);
                         }
                     }
                     else
@@ -147,7 +195,6 @@ int iobuf_read(void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
                 f->length+=(taille-offset);
             }
             
-            //f->read_size-=(taille-offset);
             //f->read_size-=(taille-offset);
             
         }
@@ -173,39 +220,6 @@ void fillnull(int begin, int end, char* p)
     }
 }
 
-char* toString(int nb)
-{
-    int neg = 0;
-    int tmp=0;
-    int old_tmp=0;
-    int i=10;
-    int j=0;
-    char inv_char;
-    char* result = malloc(33);
-    if(nb<0)
-    {
-        nb=nb*-1;
-        neg=1;
-    }
-    while(nb!=0)
-    {
-        old_tmp= nb/i;
-        tmp=nb-old_tmp*i;
-        result[j]=tmp+'0';
-        nb=old_tmp;
-        j++;
-    }
-    for(int k=0;k<j/2;k++)
-    {
-        inv_char= result[k];
-
-        result[k]=result[j-(k+1)];
-        result[j-(k+1)]=inv_char;
-    }
-    //result[j+1]='\0';
-    return result;
-}
-
 int iobuf_write(const void *p, unsigned int taille, unsigned int nbelem, IOBUF_FILE *f)
 {
     if(f != NULL && f->fd != -1 && f->buf != NULL)
@@ -214,13 +228,6 @@ int iobuf_write(const void *p, unsigned int taille, unsigned int nbelem, IOBUF_F
             f->length=0;
         f->mode=O_WRONLY;
         int i=0;
-        if(p == f->buf)
-        {
-            //flush
-            write(f->fd,f->buf,f->length);
-            return i;
-        }
-        
         for(i;i<nbelem;i++)
         {
             if(f->length+taille>=MAX_BUF)
@@ -242,29 +249,17 @@ int iobuf_write(const void *p, unsigned int taille, unsigned int nbelem, IOBUF_F
     }
 }
 
-int iobuf_flush(IOBUF_FILE *f)
-{
-    if(f != NULL && f->fd != -1 && f->buf != NULL)
-    {
-        if(f->mode == O_WRONLY && f->length!=0)
-        {
-            write(f->fd,f->buf,f->length);
-        }
-        f->length=0;
-        return 1;
-    }
-    return 0;
-}
 
 int iobuf_fprintf (IOBUF_FILE *f, const char *format, ...)
 {
-    va_list args;
-    va_start(args,format);
-    inner_print(f,format,&args);
-    va_end(args);
+    va_list* args=malloc(sizeof(va_list));
+    va_start(*args,format);
+    inner_print(f,format,args);
+    va_end(*args);
     char end = '\0';
-    iobuf_write(&end,1,1,f);
+    //iobuf_write(&end,1,1,f);
     iobuf_flush(f);
+    free(args);
     return 1;
 }
 
@@ -272,8 +267,6 @@ void inner_print(IOBUF_FILE *f, const char *format,va_list* args)
 {
     int i=0;
     int l_i=0;
-    int j=0;
-
     int j=0;
 
     int d_tmp;
@@ -323,13 +316,14 @@ void inner_print(IOBUF_FILE *f, const char *format,va_list* args)
 
 int iobuf_printf (const char *format, ...)
 {
-    va_list args;
-    va_start(args,format);
-    inner_print(stdout,format,&args);
-    va_end(args);
+    va_list* args=malloc(sizeof(va_list));
+    va_start(*args,format);
+    inner_print(stdout,format,args);
+    va_end(*args);
     char end = '\0';
-    iobuf_write(&end,1,1,stdout);
+    //iobuf_write(&end,1,1,stdout);
     iobuf_flush(stdout);
+    free(args);
     return 1;
 }
 

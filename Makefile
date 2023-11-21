@@ -1,10 +1,10 @@
-%.o:	
-	gcc -c test.c stdes.h -g
-	gcc -c stdes.c stdes.h -g
+EXEC=test
 
-test1: test.o stdes.o
-	gcc -o test1 test.o stdes.o -g
+$(EXEC): 
+	gcc -c stdes.c stdes.h -g
+	gcc -c $@.c stdes.h -g
+	gcc -o $@ $@.o stdes.o -g
 
 clean:
 	rm *.o
-	rm ./test1
+	rm ./$(EXEC)

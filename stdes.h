@@ -11,7 +11,7 @@
 #define MAX_BUF 2048
 struct _ES_FICHIER
 {
-    char * buf;
+    char buf[MAX_BUF];
     int length;
     int fd;
     int mode;    
