@@ -85,13 +85,20 @@ char* toString(int nb)
         nb=nb*-1;
         neg=1;
     }
-    while(nb!=0)
+    if(nb==0)
     {
-        old_tmp= nb/i;
-        tmp=nb-old_tmp*i;
-        result[j]=tmp+'0';
-        nb=old_tmp;
-        j++;
+        result[0]='0';
+    }
+    else
+    {
+        while(nb!=0)
+        {
+            old_tmp= nb/i;
+            tmp=nb-old_tmp*i;
+            result[j]=tmp+'0';
+            nb=old_tmp;
+            j++;
+        }
     }
 
     for(k=0;k<j/2+neg;k++)
@@ -273,7 +280,6 @@ void inner_print(IOBUF_FILE *f, const char *format,va_list* args)
     char c_tmp;
     char* s_tmp;
     char* dstmp;
-    
     while(format[i]!='\0')
     {
         if(format[i]=='%' && format[i+1]!='\0' )
@@ -299,7 +305,7 @@ void inner_print(IOBUF_FILE *f, const char *format,va_list* args)
                 case 's':
                     s_tmp = va_arg(*args,char*);
                     j=0;
-                    while(s_tmp[j]!='\0')
+                    while(s_tmp[j]!='\0' || s_tmp[j]!=0)
                         j++;
                     iobuf_write(s_tmp,sizeof(char),j,f);
                 break;                
@@ -311,7 +317,8 @@ void inner_print(IOBUF_FILE *f, const char *format,va_list* args)
     }
 
     if(l_i!=i)
-        iobuf_write(&format[l_i],1,i,f);    
+        iobuf_write(&format[l_i],1,i-l_i,f);    
+
 }
 
 int iobuf_printf (const char *format, ...)
