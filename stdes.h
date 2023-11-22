@@ -32,7 +32,7 @@ int iobuf_flush(IOBUF_FILE *f);
 void fillnull(int begin, int end, char* p);
 void fillbuff(IOBUF_FILE *f);
 char* toString(int nb);
-void inner_print(IOBUF_FILE *f, const char *format,va_list* args);
+int inner_print(IOBUF_FILE *f, const char *format,va_list* args);
 
 int iobuf_fprintf(IOBUF_FILE *f, const char *format, ...);
 /* directly in stdout */

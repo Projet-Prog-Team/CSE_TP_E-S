@@ -45,7 +45,7 @@ int iobuf_close(IOBUF_FILE*f)
     {
         iobuf_flush(f);
         close(f->fd);
-        free(f);
+        //free(f);
         return 1;
     }
     else
@@ -260,26 +260,29 @@ int iobuf_write(const void *p, unsigned int taille, unsigned int nbelem, IOBUF_F
 int iobuf_fprintf (IOBUF_FILE *f, const char *format, ...)
 {
     va_list* args=malloc(sizeof(va_list));
+    int nb=0;
     va_start(*args,format);
-    inner_print(f,format,args);
+    nb=inner_print(f,format,args);
     va_end(*args);
     char end = '\0';
     //iobuf_write(&end,1,1,f);
     iobuf_flush(f);
     free(args);
-    return 1;
+    return nb;
 }
 
-void inner_print(IOBUF_FILE *f, const char *format,va_list* args)
+int inner_print(IOBUF_FILE *f, const char *format,va_list* args)
 {
     int i=0;
     int l_i=0;
     int j=0;
+    int nb=0;
 
     int d_tmp;
     char c_tmp;
     char* s_tmp;
     char* dstmp;
+    char* tmp_p;
     while(format[i]!='\0')
     {
         if(format[i]=='%' && format[i+1]!='\0' )
@@ -295,11 +298,13 @@ void inner_print(IOBUF_FILE *f, const char *format,va_list* args)
                     while(s_tmp[j]!='\0')
                         j++;
                     iobuf_write(s_tmp,sizeof(char),j,f);
+                    nb++;
                 break;
 
                 case 'c':
                     c_tmp = va_arg(*args,int);
                     iobuf_write(&c_tmp,sizeof(char),1,f);
+                    nb++;
                 break;
 
                 case 's':
@@ -308,7 +313,14 @@ void inner_print(IOBUF_FILE *f, const char *format,va_list* args)
                     while(s_tmp[j]!='\0' || s_tmp[j]!=0)
                         j++;
                     iobuf_write(s_tmp,sizeof(char),j,f);
-                break;                
+                    nb++;
+                break;   
+
+                default:     
+                   tmp_p=malloc(2);
+                   tmp_p[0]='%';
+                   tmp_p[1]= format[i+1];
+                   iobuf_write(tmp_p,sizeof(char),2,f);        
             }
             i++;
             l_i=i+1;
@@ -318,90 +330,128 @@ void inner_print(IOBUF_FILE *f, const char *format,va_list* args)
 
     if(l_i!=i)
         iobuf_write(&format[l_i],1,i-l_i,f);    
-
+    return nb;
 }
 
 int iobuf_printf (const char *format, ...)
 {
     va_list* args=malloc(sizeof(va_list));
+    int nb=0;
     va_start(*args,format);
-    inner_print(stdout,format,args);
+    nb=inner_print(stdout,format,args);
     va_end(*args);
     char end = '\0';
     //iobuf_write(&end,1,1,stdout);
     iobuf_flush(stdout);
     free(args);
-    return 1;
+    return nb;
 }
 
 int iobuf_fscanf(IOBUF_FILE *f, const char *format, ...)
 {
-    const int LN_BUF=100;
+    const int LN_BUF=101;
     int nb_param=0;
     int ln=0;
     int i=0;
-    int j=LN_BUF;
     int k=0;
     int b_break=1;
+    int readed=0;
     va_list args;
     va_start(args,format);
-    char current;
+    int nbvalid=0;
+    char tmp;
+    char old_tmp;
 
     char* buf = malloc(LN_BUF);
     char* proc_buf=malloc(LN_BUF);
     int* proc_int;
-    /*while(format[i]!='\0')
+    char* c_result;
+    char* s_result;
+    while(format[i]!='\0')
     {
         if(format[i]=='%' && format[i+1]!='\0')
             if(format[i+1]=='d' || format[i+1]=='c' || format[i+1]=='s')
                 nb_param++;
         ln++;
-    }*/
+        i++;
+    }
+    i=0;
     if(nb_param*2==ln)
     {
         //if format doesn't have a specific format
         
         while(format[i]!='\0')
         {
-            if(j==100)
-            {
-                j=0;
-                iobuf_read(buf,50,2,f);
-            }
             if(format[i]=='%' && format[i+1]!='\0')
                 switch(format[i+1])
                 {
                     case 'd':
-                        while(j!=LN_BUF && b_break)
+                        k=0;
+                        while(b_break>0)
                         {
-                            if(buf[j]>='0' && buf[j]<='9')
+                            //check there is a number   
+                            old_tmp=tmp;
+                            iobuf_read(&tmp,1,1,f);
+                            if(tmp>='0' && tmp<='9')
                             {
-                                proc_buf[k]=buf[j];
+                                proc_buf[k]=tmp;
                                 k++;
                             }
-                            if(j!=0 && buf[j-1]>='0' && buf[j-1]<='9' && (buf[j]<'0' || buf[j]>'9'))
+                            if(old_tmp>='0' && old_tmp<='9' && (tmp<'0' || tmp>'9'))
                                 b_break=0;
-                            j++;
+                            //fill again
                         }
-                        proc_buf[k]='\0';
+                        b_break=1;
+                        if(k==0)
+                        {
+                            //if there isn't a single number
+                            proc_buf[0]='0';
+                            proc_buf[1]='\0';
+                        }
+                        else
+                        {
+                            nbvalid++;
+                            proc_buf[k]='\0';
+                        }
                         proc_int=va_arg(args,int*);
-                        *proc_int=atoi(proc_buf);
+                        *proc_int=atoi(proc_buf);                        
                     break;
 
                     case 's':
-
+                        k=0;
+                        s_result=va_arg(args,char*);
+                        iobuf_read(&tmp,1,1,f);
+                        while(k!=LN_BUF-1 && tmp!=' ' && tmp!='\t' && tmp!='\n')
+                        {
+                            s_result[k]=tmp;
+                            iobuf_read(&tmp,1,1,f);
+                            k++;
+                        }
+                        
+                        if(k!=0)
+                        {
+                            s_result[k]=tmp;
+                            nbvalid++;
+                        }
                     break;
 
                     case 'c':
-
+                        c_result=va_arg(args,char*);
+                        if(f->read_size>0)
+                        {
+                            iobuf_read(c_result,1,1,f);
+                            nbvalid++;
+                        }
                     break;
                 }
             i++;
         }
+        return nbvalid;
     }
     else
     {
-
+        //with a specific format
+        return 0;
     }
     
 }
